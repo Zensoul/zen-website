@@ -45,7 +45,7 @@ export default function HeroSection() {
             width={600}
             height={600}
             className="w-full h-auto rounded-xl shadow-xl"
-            priority
+            
           />
         </div>
       </div>
