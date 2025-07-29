@@ -33,7 +33,7 @@ export default function HowItWorksSection() {
   ]
 
   return (
-    <section className="bg-gradient-to-br from-[#f5f7fa] to-[#e6ecf3] py-20 px-4 sm:px-6 lg:px-8">
+    <section className="bg-[#fdfaf5] py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto text-center">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -59,11 +59,11 @@ export default function HowItWorksSection() {
         {steps.map((step, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 + index * 0.2 }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 + index * 0.15 }}
             viewport={{ once: true }}
-            className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-lg rounded-2xl p-6 text-center transition-all duration-300 transform hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]"
+            className="bg-white bg-opacity-90 backdrop-blur-sm border border-gray-200 shadow-[0_10px_30px_rgba(0,0,0,0.05)] rounded-xl p-6 text-center transition-all duration-300 transform hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]"
           >
             <div className="flex justify-center mb-4">{step.icon}</div>
             <h3 className="text-xl font-semibold text-[#333] mb-2">{step.title}</h3>

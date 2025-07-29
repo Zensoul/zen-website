@@ -8,7 +8,7 @@ export default function HeroSection() {
     <section className="relative bg-[#f8f5f0] pt-20 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Background shape */}
       <div
-        className="absolute inset-0 -z-10 bg-gradient-to-br from-[#e8e1d9] to-[#fff] opacity-80"
+        className="absolute inset-0 -z-10 bg-gradient-to-br from-[#f6f2ec] to-[#fdfaf5] opacity-80"
         aria-hidden="true"
       />
 
