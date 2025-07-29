@@ -39,7 +39,7 @@ export default function HeroSection() {
 
         {/* Image Content */}
         <div data-aos="fade-left" className="relative">
-          <Image
+          <img
             src="/illustrations/hero.png"
             alt="Online counselling illustration"
             width={600}
