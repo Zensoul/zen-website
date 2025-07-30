@@ -73,7 +73,7 @@ export default function ServicesSection() {
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: index * 0.15 }}
+              transition={{ duration: 0.45, ease:'easeOut', delay: index * 0.15 }}
               viewport={{ once: true }}
               className="bg-white/90 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden shadow-md transition-all duration-500 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] cursor-pointer"
             >
@@ -81,7 +81,6 @@ export default function ServicesSection() {
                 <img
                   src={service.image}
                   alt={service.title}
-                  fill
                   className="object-cover rounded-t-2xl"
                   sizes="(max-width: 768px) 100vw, 33vw"
                 />

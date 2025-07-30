@@ -10,6 +10,7 @@ import Header from "./_Components/Header";
 import HeroSection from "./_Components/HeroSection";
 import HowItWorksSection from "./_Components/HowItWorksSection";
 import ServicesSection from "./_Components/ServicesSection";
+import WhyChooseUsSection from "./_Components/WhyChooseUsSection";
 
 const jost = Jost({
   variable: "--font-jost",
@@ -32,6 +33,7 @@ export default function ClientWrapper({ children }) {
       <HeroSection />
       <ServicesSection />
       <HowItWorksSection />
+      <WhyChooseUsSection />
       {children}
     </div>
   );
