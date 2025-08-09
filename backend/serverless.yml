@@ -1,0 +1,175 @@
+service: zen-backend
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-south-1
+
+  # Environment variables available to all Lambdas
+  environment:
+    USERS_TABLE: ZenUsers
+    JWT_SECRET: ${env:JWT_SECRET}
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    ASSESSMENTS_TABLE: ${env:ASSESSMENTS_TABLE, 'ZenAssessments'}
+    COUNSELLORS_TABLE: ${env:COUNSELLORS_TABLE, 'ZenCounsellors'}
+    APPOINTMENTS_TABLE: ZenAppointments
+
+  # Permissions for DynamoDB, Cognito, etc.
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        # ZenUsers table
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Query
+        - dynamodb:UpdateItem
+        # Cognito flows
+        - cognito-idp:SignUp
+        - cognito-idp:ConfirmSignUp
+        - cognito-idp:InitiateAuth
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}/index/EmailIndex
+
+    - Effect: Allow
+      Action:
+        # ZenAssessments table
+        - dynamodb:PutItem
+        - dynamodb:Query
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.ASSESSMENTS_TABLE}
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.ASSESSMENTS_TABLE}/index/UserIndex
+
+    - Effect: Allow
+      Action:
+        # ZenCounsellors table (existing)
+        - dynamodb:Scan
+        - dynamodb:GetItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.COUNSELLORS_TABLE}
+
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:Query
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments
+        - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments/index/CounsellorDateSlotIndex
+
+
+functions:
+  signup:
+    handler: functions/auth/signup.handler
+    events:
+      - http:
+          path: /auth/signup
+          method: post
+          cors: true
+
+  login:
+    handler: functions/auth/login.handler
+    events:
+      - http:
+          path: /auth/login
+          method: post
+          cors: true
+
+  confirmUser:
+    handler: functions/auth/confirm.handler
+    events:
+      - http:
+          path: /auth/confirm
+          method: post
+          cors: true
+
+  submitAssessment:
+    handler: functions/assessment/submit.handler
+    events:
+      - http:
+          path: /assessment
+          method: post
+          cors: true
+
+  assessmentList:
+    handler: functions/assessment/list.handler
+    events:
+      - http:
+          path: /assessment
+          method: get
+          cors: true
+
+  listCounsellors:
+    handler: functions/counsellors/list.handler
+    events:
+      - http:
+          path: /counsellors
+          method: get
+          cors: true
+
+  checkAvailability:
+    handler: functions/appointments/checkAvailability.handler
+    events:
+      - http:
+          path: /appointments/check-availability
+          method: get
+          cors: true
+
+  createAppointment:
+    handler: functions/appointments/createAppointment.handler
+    events:
+      - http:
+          path: /appointments
+          method: post
+          cors: true
+
+plugins:
+  - serverless-offline
+
+resources:
+  Resources:
+
+    ZenUsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USERS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    AssessmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.ASSESSMENTS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: assessmentId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: assessmentId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: UserIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+  # Note: The ZenCounsellorsTable resource has been removed because
+  # the table already exists. IAM permissions still allow your
+  # Lambda to scan the existing table.

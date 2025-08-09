@@ -1,0 +1,1827 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "SignupLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-signup"
+      }
+    },
+    "LoginLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-login"
+      }
+    },
+    "ConfirmUserLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-confirmUser"
+      }
+    },
+    "SubmitAssessmentLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-submitAssessment"
+      }
+    },
+    "AssessmentListLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-assessmentList"
+      }
+    },
+    "ListCounsellorsLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-listCounsellors"
+      }
+    },
+    "CheckAvailabilityLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-checkAvailability"
+      }
+    },
+    "CreateAppointmentLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-createAppointment"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "zen-backend",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/zen-backend-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/zen-backend-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query",
+                    "dynamodb:UpdateItem",
+                    "cognito-idp:SignUp",
+                    "cognito-idp:ConfirmSignUp",
+                    "cognito-idp:InitiateAuth"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenUsers",
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenUsers/index/EmailIndex"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:Query"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenAssessments",
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenAssessments/index/UserIndex"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem"
+                  ],
+                  "Resource": "arn:aws:dynamodb:ap-south-1:*:table/ZenCounsellors"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:Query"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenAppointments",
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenAppointments/index/CounsellorDateSlotIndex"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "zen-backend",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "SignupLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/auth/signup.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-signup",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SignupLogGroup"
+      ]
+    },
+    "LoginLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/auth/login.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-login",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "LoginLogGroup"
+      ]
+    },
+    "ConfirmUserLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/auth/confirm.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-confirmUser",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ConfirmUserLogGroup"
+      ]
+    },
+    "SubmitAssessmentLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/assessment/submit.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-submitAssessment",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SubmitAssessmentLogGroup"
+      ]
+    },
+    "AssessmentListLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/assessment/list.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-assessmentList",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "AssessmentListLogGroup"
+      ]
+    },
+    "ListCounsellorsLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/counsellors/list.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-listCounsellors",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ListCounsellorsLogGroup"
+      ]
+    },
+    "CheckAvailabilityLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/appointments/checkAvailability.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-checkAvailability",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "CheckAvailabilityLogGroup"
+      ]
+    },
+    "CreateAppointmentLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+        },
+        "Handler": "functions/appointments/createAppointment.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-createAppointment",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "CreateAppointmentLogGroup"
+      ]
+    },
+    "SignupLambdaVersionJAzRCh8zl3UbBH6ej51IjMYnSwFFeUkk4PA3ZyUnGs": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SignupLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "LoginLambdaVersionovTnkz8OCEtA1dRWfSwtfVs5440JUmU8yoqLO9vMbPI": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LoginLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "ConfirmUserLambdaVersionK58rLorlzKuuveH4hZSu4N9Wa8OG4FQRlrgPshDTGU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ConfirmUserLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "SubmitAssessmentLambdaVersioncvCsM5U1mZz3sTwskYbB7CTy2MV3ipTuayZPVTXFs": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SubmitAssessmentLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "AssessmentListLambdaVersioncBfX9W9yNBeQVcDuuZ8DQgfuKV6PY92vQ5PFkVR7Xpg": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "AssessmentListLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "ListCounsellorsLambdaVersionUfmeVYzljcozygtLpdHQGFMjZSnsYzqGOmYXimek": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ListCounsellorsLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "CheckAvailabilityLambdaVersionoe1D9DaUPkdS5GYM0DckwyWXtou6hGScn2s22Bce2U4": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "CheckAvailabilityLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "CreateAppointmentLambdaVersion5uNmJtaDsMT4K4NErOz9CsYfr69YivjUe3X4Dmfro": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "CreateAppointmentLambdaFunction"
+        },
+        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+      }
+    },
+    "ApiGatewayRestApi": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "dev-zen-backend",
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE"
+          ]
+        },
+        "Policy": ""
+      }
+    },
+    "ApiGatewayResourceAuth": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "auth",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAuthSignup": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceAuth"
+        },
+        "PathPart": "signup",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAuthLogin": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceAuth"
+        },
+        "PathPart": "login",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAuthConfirm": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceAuth"
+        },
+        "PathPart": "confirm",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAssessment": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "assessment",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceCounsellors": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "counsellors",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAppointments": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "appointments",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAppointmentsCheckDashavailability": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceAppointments"
+        },
+        "PathPart": "check-availability",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAuthSignupOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthSignup"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAuthLoginOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthLogin"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAuthConfirmOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthConfirm"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAssessmentOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,POST'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAssessment"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodCounsellorsOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceCounsellors"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAppointmentsCheckDashavailabilityOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAppointmentsCheckDashavailability"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAppointmentsOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAppointments"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAuthSignupPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthSignup"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "SignupLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "SignupLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAuthLoginPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthLogin"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "LoginLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "LoginLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAuthConfirmPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthConfirm"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "ConfirmUserLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "ConfirmUserLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAssessmentPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAssessment"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "SubmitAssessmentLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "SubmitAssessmentLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAssessmentGet": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "GET",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAssessment"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "AssessmentListLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "AssessmentListLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodCounsellorsGet": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "GET",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceCounsellors"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "ListCounsellorsLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "ListCounsellorsLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAppointmentsCheckDashavailabilityGet": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "GET",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAppointmentsCheckDashavailability"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "CheckAvailabilityLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "CheckAvailabilityLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAppointmentsPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAppointments"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "CreateAppointmentLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "CreateAppointmentLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayDeployment1754656960696": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "StageName": "dev"
+      },
+      "DependsOn": [
+        "ApiGatewayMethodAuthSignupOptions",
+        "ApiGatewayMethodAuthLoginOptions",
+        "ApiGatewayMethodAuthConfirmOptions",
+        "ApiGatewayMethodAssessmentOptions",
+        "ApiGatewayMethodCounsellorsOptions",
+        "ApiGatewayMethodAppointmentsCheckDashavailabilityOptions",
+        "ApiGatewayMethodAppointmentsOptions",
+        "ApiGatewayMethodAuthSignupPost",
+        "ApiGatewayMethodAuthLoginPost",
+        "ApiGatewayMethodAuthConfirmPost",
+        "ApiGatewayMethodAssessmentPost",
+        "ApiGatewayMethodAssessmentGet",
+        "ApiGatewayMethodCounsellorsGet",
+        "ApiGatewayMethodAppointmentsCheckDashavailabilityGet",
+        "ApiGatewayMethodAppointmentsPost"
+      ]
+    },
+    "SignupLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SignupLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "LoginLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "LoginLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "ConfirmUserLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ConfirmUserLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "SubmitAssessmentLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SubmitAssessmentLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "AssessmentListLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AssessmentListLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "ListCounsellorsLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ListCounsellorsLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "CheckAvailabilityLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CheckAvailabilityLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "CreateAppointmentLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CreateAppointmentLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "ZenUsersTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "ZenUsers",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "userId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "email",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "userId",
+            "KeyType": "HASH"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "EmailIndex",
+            "KeySchema": [
+              {
+                "AttributeName": "email",
+                "KeyType": "HASH"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            }
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
+      }
+    },
+    "AssessmentsTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "ZenAssessments",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "assessmentId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "userId",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "assessmentId",
+            "KeyType": "HASH"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "UserIndex",
+            "KeySchema": [
+              {
+                "AttributeName": "userId",
+                "KeyType": "HASH"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            }
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": "serverless-framework-deployments-ap-south-1-218199db-4340",
+      "Export": {
+        "Name": "sls-zen-backend-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "SignupLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SignupLambdaVersionJAzRCh8zl3UbBH6ej51IjMYnSwFFeUkk4PA3ZyUnGs"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-SignupLambdaFunctionQualifiedArn"
+      }
+    },
+    "LoginLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "LoginLambdaVersionovTnkz8OCEtA1dRWfSwtfVs5440JUmU8yoqLO9vMbPI"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-LoginLambdaFunctionQualifiedArn"
+      }
+    },
+    "ConfirmUserLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ConfirmUserLambdaVersionK58rLorlzKuuveH4hZSu4N9Wa8OG4FQRlrgPshDTGU"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-ConfirmUserLambdaFunctionQualifiedArn"
+      }
+    },
+    "SubmitAssessmentLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SubmitAssessmentLambdaVersioncvCsM5U1mZz3sTwskYbB7CTy2MV3ipTuayZPVTXFs"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-SubmitAssessmentLambdaFunctionQualifiedArn"
+      }
+    },
+    "AssessmentListLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "AssessmentListLambdaVersioncBfX9W9yNBeQVcDuuZ8DQgfuKV6PY92vQ5PFkVR7Xpg"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-AssessmentListLambdaFunctionQualifiedArn"
+      }
+    },
+    "ListCounsellorsLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ListCounsellorsLambdaVersionUfmeVYzljcozygtLpdHQGFMjZSnsYzqGOmYXimek"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-ListCounsellorsLambdaFunctionQualifiedArn"
+      }
+    },
+    "CheckAvailabilityLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "CheckAvailabilityLambdaVersionoe1D9DaUPkdS5GYM0DckwyWXtou6hGScn2s22Bce2U4"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-CheckAvailabilityLambdaFunctionQualifiedArn"
+      }
+    },
+    "CreateAppointmentLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "CreateAppointmentLambdaVersion5uNmJtaDsMT4K4NErOz9CsYfr69YivjUe3X4Dmfro"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-CreateAppointmentLambdaFunctionQualifiedArn"
+      }
+    },
+    "ServiceEndpoint": {
+      "Description": "URL of the service endpoint",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "ApiGatewayRestApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            },
+            "/dev"
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-ServiceEndpoint"
+      }
+    }
+  }
+}
