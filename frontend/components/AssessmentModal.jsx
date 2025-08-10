@@ -14,7 +14,8 @@ import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import BookingModal from './BookingModal'
-import { submitAssessment } from '@/lib/api'
+import { submitAssessment, listCounsellors } from '@/lib/api'
+
 
 // Standard questionnaires
 const AUDIT_QUESTIONS = [

@@ -1,4 +1,4 @@
-// lib/api.js
+// File: lib/api.js
 
 // 1) Base URL (env first, then prod fallback)
 export const API_BASE =
@@ -21,18 +21,23 @@ function authHeaders() {
   return headers;
 }
 
-// 4) Unified request + error handling
+// 4) Unified request + error handling (no-cache)
 async function request(path, { method = 'GET', body } = {}) {
   const res = await fetch(api(path), {
     method,
     headers: authHeaders(),
     body: body ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+    credentials: 'omit',
   });
 
-  // Try to parse JSON/message for better errors
-  const text = await res.text();
+  const raw = await res.text();
   let data;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text || null; }
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = raw || null;
+  }
 
   if (!res.ok) {
     const msg =
@@ -51,7 +56,7 @@ async function request(path, { method = 'GET', body } = {}) {
    Public API functions
    ===================== */
 
-// Keep your existing signatures:
+// auth
 export async function signup({ name, email, password }) {
   return request('/auth/signup', {
     method: 'POST',
@@ -66,7 +71,7 @@ export async function login({ email, password }) {
   });
 }
 
-// New (used across your app):
+// assessment
 export async function submitAssessment(payload) {
   return request('/assessment', { method: 'POST', body: payload });
 }
@@ -76,8 +81,8 @@ export async function listCounsellors({ category }) {
   return request(`/counsellors${q}`);
 }
 
+// appointments
 export async function checkAvailability({ counsellorId, date }) {
-  // Your backend is wired as GET /appointments/check-availability?counsellorId=...&date=...
   return request(
     `/appointments/check-availability?counsellorId=${encodeURIComponent(
       counsellorId
