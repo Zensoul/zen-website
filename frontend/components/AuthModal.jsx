@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { login } from '@/lib/api'
 
 // inline JWT decode (for login stage)
 function decodeJWT(token) {
@@ -104,30 +105,36 @@ export default function AuthModal({
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/auth/login`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password
-          })
-        }
-      )
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Login failed')
-      if (!data.token) throw new Error('Token not received')
-      const decoded = decodeJWT(data.token)
-      if (!decoded) throw new Error('Invalid token')
+      // ✅ use API helper
+      const data = await login({ email: formData.email, password: formData.password })
 
-      localStorage.setItem('token', data.token)
-      setUser({ userId: decoded.sub, email: decoded.email, name: decoded.name })
+      if (!data?.token) throw new Error('Token not received')
+
+      // ✅ store token (client-side only)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', data.token)
+      }
+
+      // ✅ prefer backend user if provided, else decode the token
+      if (data.user) {
+        const u = data.user
+        setUser({
+          userId: u.userId || u.sub || u.id,
+          email: u.email,
+          name: u.name
+        })
+      } else {
+        const decoded = decodeJWT(data.token)
+        if (!decoded) throw new Error('Invalid token')
+        setUser({
+          userId: decoded.sub,
+          email: decoded.email,
+          name: decoded.name
+        })
+      }
 
       onClose()
-      if (!skipRedirect) {
-        router.push('/dashboard')
-      }
+      if (!skipRedirect) router.push('/dashboard')
     } catch (err) {
       setError(err.message)
     } finally {

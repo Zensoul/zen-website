@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import PaymentModal from '@/components/PaymentModal' // [NEW] import
+import { checkAvailability } from '@/lib/api' // ← NEW
 
 function todayPlus(days = 0) {
   const d = new Date(); d.setDate(d.getDate() + days)
@@ -28,7 +29,7 @@ const SESSION_TYPES = [
   { label: "In-person", value: "In-Person" }
 ]
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://w4zqabm0ii.execute-api.ap-south-1.amazonaws.com/dev'
+// const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://w4zqabm0ii.execute-api.ap-south-1.amazonaws.com/dev'
 
 export default function BookingModal({ open, onClose, counsellor, user }) {
   const [sessionType, setSessionType] = useState('Video')
@@ -54,12 +55,13 @@ export default function BookingModal({ open, onClose, counsellor, user }) {
     setLoadingSlots(true)
     setBookedSlots([])
     setSlot('')
-    fetch(`${API_BASE}/appointments/check-availability?counsellorId=${counsellor.id}&date=${date}`)
-      .then(res => res.json())
+    checkAvailability({ counsellorId: counsellor.id, date }) // ← replaced fetch with helper
       .then(data => setBookedSlots(data.slots || []))
       .catch(() => setBookedSlots([]))
       .finally(() => setLoadingSlots(false))
   }, [counsellor, date])
+  // --------------------------------
+
 
   const availableSlots = ALL_SLOTS.filter(ts => !bookedSlots.includes(ts))
 
@@ -77,13 +79,8 @@ export default function BookingModal({ open, onClose, counsellor, user }) {
         counsellorName: counsellor.name,
         sessionType, date, timeSlot: slot, fee, notes,
       }
-      const res = await fetch(`${API_BASE}/appointments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const { appointment: appt } = await res.json()
+      // [CHANGE] use API helper instead of raw fetch
+      const appt = await createAppointment(payload)
       setAppointment(appt)                                     // [NEW] save for payment screen
 
       // [NEW] allocation spinner -> success popup

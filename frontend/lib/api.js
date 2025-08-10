@@ -1,17 +1,91 @@
-export async function signup({ name, email, password }) {
-  const res = await fetch('https://w4zqabm0ii.execute-api.ap-south-1.amazonaws.com/dev/auth/signup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password }),
+// lib/api.js
+
+// 1) Base URL (env first, then prod fallback)
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  'https://w4zqabm0ii.execute-api.ap-south-1.amazonaws.com/dev';
+
+// 2) Build full URL safely
+export function api(path) {
+  if (!path.startsWith('/')) path = '/' + path;
+  return API_BASE + path;
+}
+
+// 3) Token-aware headers (safe on SSR)
+function authHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// 4) Unified request + error handling
+async function request(path, { method = 'GET', body } = {}) {
+  const res = await fetch(api(path), {
+    method,
+    headers: authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
   });
-  return res.json();
+
+  // Try to parse JSON/message for better errors
+  const text = await res.text();
+  let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text || null; }
+
+  if (!res.ok) {
+    const msg =
+      (data && (data.message || data.error)) ||
+      `HTTP ${res.status} ${res.statusText}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.payload = data;
+    throw err;
+  }
+
+  return data;
+}
+
+/* =====================
+   Public API functions
+   ===================== */
+
+// Keep your existing signatures:
+export async function signup({ name, email, password }) {
+  return request('/auth/signup', {
+    method: 'POST',
+    body: { name, email, password },
+  });
 }
 
 export async function login({ email, password }) {
-  const res = await fetch('https://w4zqabm0ii.execute-api.ap-south-1.amazonaws.com/dev/auth/login', {
+  return request('/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   });
-  return res.json();
+}
+
+// New (used across your app):
+export async function submitAssessment(payload) {
+  return request('/assessment', { method: 'POST', body: payload });
+}
+
+export async function listCounsellors({ category }) {
+  const q = category ? `?category=${encodeURIComponent(category)}` : '';
+  return request(`/counsellors${q}`);
+}
+
+export async function checkAvailability({ counsellorId, date }) {
+  // Your backend is wired as GET /appointments/check-availability?counsellorId=...&date=...
+  return request(
+    `/appointments/check-availability?counsellorId=${encodeURIComponent(
+      counsellorId
+    )}&date=${encodeURIComponent(date)}`
+  );
+}
+
+export async function createAppointment(payload) {
+  // { userId, userName, counsellorId, counsellorName, sessionType, date, timeSlot, fee, notes }
+  return request('/appointments', { method: 'POST', body: payload });
 }

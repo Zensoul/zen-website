@@ -14,6 +14,7 @@ import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import BookingModal from './BookingModal'
+import { submitAssessment } from '@/lib/api'
 
 // Standard questionnaires
 const AUDIT_QUESTIONS = [
@@ -149,22 +150,20 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
       }
       const userId = user.userId || user.sub
       if (!userId) throw new Error('Unable to identify user.')
+      
+      // grab id token from your context or storage
+       const token =
+       user?.idToken ||
+       (typeof window !== 'undefined' ? localStorage.getItem('idToken') : null)
 
       console.log('[AssessmentModal] Submitting with category:', data.category);  
-      const res = await fetch(`${API_BASE}/assessment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, ...data }),
-      })
-      if (!res.ok) throw new Error(await res.text())
+      await submitAssessment({ userId, ...data }) // [CHANGE]
 
       setShowMatching(true)
       setTimeout(async () => {
         try {
-          const cRes = await fetch(
-      `${API_BASE}/counsellors?category=${encodeURIComponent(data.category)}`
-    )
-          const { counsellors } = await cRes.json()
+          // [CHANGED] use API helper instead of fetch
+          const { counsellors } = await listCounsellors({ category: data.category })
           console.log('[AssessmentModal] Matched counsellors:', counsellors);
           setMatchedCounsellors(counsellors.slice(0, 5))
         } catch (err) {
