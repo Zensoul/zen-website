@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import PaymentModal from '@/components/PaymentModal' // [NEW] import
-import { checkAvailability } from '@/lib/api' // ← NEW
+import { checkAvailability, createAppointment } from '@/lib/api' // ← NEW
 
 function todayPlus(days = 0) {
   const d = new Date(); d.setDate(d.getDate() + days)
@@ -80,7 +80,8 @@ export default function BookingModal({ open, onClose, counsellor, user }) {
         sessionType, date, timeSlot: slot, fee, notes,
       }
       // [CHANGE] use API helper instead of raw fetch
-      const appt = await createAppointment(payload)
+      const resp = await createAppointment(payload)
+      const appt = resp?.appointment ?? resp
       setAppointment(appt)                                     // [NEW] save for payment screen
 
       // [NEW] allocation spinner -> success popup
