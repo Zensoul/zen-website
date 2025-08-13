@@ -156,9 +156,12 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
        const token =
        user?.idToken ||
        (typeof window !== 'undefined' ? localStorage.getItem('idToken') : null)
+      // DEBUG: see exactly what we send
+      const payload = { userId, ...data }
+      console.log('[AssessmentModal] payload →', payload) 
 
       console.log('[AssessmentModal] Submitting with category:', data.category);  
-      await submitAssessment({ userId, ...data }) // [CHANGE]
+      await submitAssessment(payload)
 
       setShowMatching(true)
       setTimeout(async () => {
@@ -173,7 +176,12 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
       }, 2000)
 
     } catch (err) {
-      setError(err.message)
+      // If our API helper attached a payload/message, show that.
+      const msg = err?.payload?.message || err?.message || 'Something went wrong'
+      console.error('submitAssessment error:', err) // includes err.status/err.payload
+      setError(msg)
+      return
+      
     } finally {
       setLoading(false)
     }

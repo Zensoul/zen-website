@@ -45,11 +45,12 @@ export default function Header() {
         <div className="flex lg:flex-1">
           <Link href="/" className="flex items-center gap-2">
             <img
-              className="h-8 w-auto"
-              src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-              alt="Logo"
+              width="180" height="48"
+              className="h-12 w-auto"
+              src="./logo/Zen_soul_logo.jpeg"
+              alt="Zensoul Online Addiction Counseling"
             />
-            <span className="font-serif font-bold text-xl text-gray-800">ZenSoul</span>
+            
           </Link>
         </div>
 

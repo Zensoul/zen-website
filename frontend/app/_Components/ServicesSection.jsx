@@ -1,15 +1,31 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Image from 'next/image'
+import Script from "next/script"   // ✅ add this
 import Link from 'next/link'
+
+const SITE_ORIGIN =
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://www.zensoulwellness.com'
+
 
 const services = [
   {
-    title: 'Break Free from Addiction',
-    description: 'Guided healing to help you reclaim control over substance or behavioral addictions.',
-    image: '/services/addiction.png',
-    href: '/services/addiction-counseling',
+    title: 'Alcohol Addiction Counseling',
+    description: 'Evidence-based online alcohol counseling for craving control and relapse prevention with CBT/MI.',
+    image: '/services/alcohol-addiction-counseling.webp',
+    href: '/services/Alcohol Addiction Counseling',
+  },
+  {
+    title: 'Drug De-Addiction Therapy',
+    description: 'Specialized therapy for opioids, cannabis, and stimulants with trigger planning and coping skills.',
+    image: '/services/drug-de-addiction-therapy.webp',
+    href: '/services/Drug De-Addiction Therapy',
+  },
+  {
+    title: 'Behavioral & Gambling Addiction',
+    description: 'CBT and habit-reversal for gambling, gaming, and compulsive behaviors with boundary planning.',
+    image: '/services/behavioral-gambling-addiction.webp',
+    href: '/services/Drug De-Addiction Therapy',
   },
   {
     title: 'Rise After Relapse',
@@ -78,12 +94,15 @@ export default function ServicesSection() {
               className="bg-white/90 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden shadow-md transition-all duration-500 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] cursor-pointer"
             >
               <div className="relative h-48 w-full">
-                <img
-                  src={service.image}
-                  alt={service.title}
-                  className="object-cover rounded-t-2xl"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
+                <div className="relative h-48 w-full overflow-hidden">
+  <img
+    src={service.image}
+    alt={service.title}
+    className="absolute inset-0 h-full w-full object-cover block"
+    loading="lazy"
+    decoding="async"
+  />
+</div>
               </div>
               <div className="p-6 text-center">
                 <h3 className="text-xl font-semibold text-[#2c2c2c] mb-2">{service.title}</h3>
@@ -93,6 +112,33 @@ export default function ServicesSection() {
           </Link>
         ))}
       </div>
+{/* JSON-LD: ItemList of Service (uses the same data you render) */}
+      <Script
+        id="services-itemlist-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'Online counseling and coaching services',
+            itemListElement: services.map((s, i) => ({
+              '@type': 'ListItem',
+              position: i + 1,
+              item: {
+                '@type': 'Service',
+                name: s.title,
+                url: new URL(s.href, SITE_ORIGIN).toString(),
+                description: s.description,
+                areaServed: 'Bangalore',
+                provider: {
+                  '@type': 'MedicalBusiness',
+                  name: 'ZenSoul Wellness',
+                },
+              },
+            })),
+          }),
+        }}
+      />
     </section>
   )
 }
