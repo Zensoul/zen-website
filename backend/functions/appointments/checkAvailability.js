@@ -1,4 +1,5 @@
-// functions/appointments/checkAvailability.js
+// File: functions/appointments/checkAvailability.js
+
 'use strict'
 
 const AWS = require('aws-sdk')
@@ -8,9 +9,10 @@ const docClient = new AWS.DynamoDB.DocumentClient()
 const TABLE = process.env.APPOINTMENTS_TABLE
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || '*',
   'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   'Access-Control-Allow-Methods': 'GET,OPTIONS',
+  'Content-Type': 'application/json',
 }
 
 module.exports.handler = async (event) => {
@@ -19,10 +21,11 @@ module.exports.handler = async (event) => {
   }
 
   try {
-    // For GET, use queryStringParameters instead of event.body
-    const paramsObj = event.queryStringParameters || {}
-    const counsellorId = paramsObj.counsellorId
-    const date = paramsObj.date
+    const qs = event.queryStringParameters || {}
+
+    // UPDATE: accept both spellings; trim to be safe
+    const counsellorId = (qs.counsellorId || qs.counselorId || '').trim()
+    const date = (qs.date || '').trim()
 
     if (!counsellorId || !date) {
       return {
@@ -32,28 +35,34 @@ module.exports.handler = async (event) => {
       }
     }
 
-    // Query all appointments for the counsellor on that date
+    // UPDATE: single ExpressionAttributeNames object (previously duplicated and overwritten)
     const params = {
       TableName: TABLE,
       IndexName: 'CounsellorDateSlotIndex',
-      KeyConditionExpression: 'counsellorId = :counsellorId AND #dt = :date',
-      ExpressionAttributeNames: { '#dt': 'date' },
-      ExpressionAttributeValues: { ':counsellorId': counsellorId, ':date': date }
+      KeyConditionExpression: 'counsellorId = :c AND #dt = :d',
+      ExpressionAttributeNames: { '#dt': 'date', '#st': 'status' }, // keep both here
+      ExpressionAttributeValues: { ':c': counsellorId, ':d': date },
+      ProjectionExpression: 'timeSlot, #st', // only fetch what we need
     }
 
     const result = await docClient.query(params).promise()
 
-    // Collect all booked time slots except cancelled ones
-    const bookedSlots = (result.Items || [])
-      .filter(item => item.status !== 'CANCELLED')
-      .map(item => item.timeSlot)
+    // UPDATE: guard against mixed-case statuses + de-duplicate time slots
+    const taken = new Set()
+    for (const item of result.Items || []) {
+      const status = String(item.status || '').toUpperCase()
+      if (status !== 'CANCELLED' && item.timeSlot) {
+        taken.add(item.timeSlot)
+      }
+    }
+    const bookedSlots = Array.from(taken)
 
+    // UPDATE: return a single clear key; removed duplicate { slots, bookedSlots }
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ slots: bookedSlots })
+      body: JSON.stringify({ bookedSlots }),
     }
-
   } catch (err) {
     console.error('CheckAvailability error', err)
     return {

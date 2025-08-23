@@ -1,63 +1,62 @@
-// File: confirm.js
+// File: functions/auth/confirm.js
+'use strict'
 
-const AWS = require('aws-sdk');
-const cognito = new AWS.CognitoIdentityServiceProvider();
+const AWS = require('aws-sdk')
+AWS.config.update({ region: process.env.AWS_REGION || 'ap-south-1' })
+const cognito = new AWS.CognitoIdentityServiceProvider()
 
-// CORS headers
 const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Credentials': true,
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS'
-};
+  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || '*',
+  'Access-Control-Allow-Credentials': 'true',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  'Access-Control-Allow-Methods': 'POST,OPTIONS',
+  'Content-Type': 'application/json',
+}
 
 module.exports.handler = async (event) => {
-  // ### CHANGED: Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '' 
-    };
+    return { statusCode: 200, headers, body: '' }
   }
 
   try {
-    // ### UNCHANGED: parse body
-    const body = JSON.parse(event.body);
-    // ### UNCHANGED: destructure confirmationCode to match front-end payload
-    const { email, confirmationCode } = body;
+    const { email, confirmationCode } = JSON.parse(event.body || '{}')
 
     if (!email || !confirmationCode) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ message: 'Email and confirmation code are required.' }),
-      };
+      }
     }
 
-    // ### CHANGED: unified env var name to COGNITO_CLIENT_ID
-    const params = {
-      ClientId: process.env.COGNITO_CLIENT_ID, 
+    await cognito.confirmSignUp({
+      ClientId: process.env.COGNITO_CLIENT_ID,
       Username: email,
       ConfirmationCode: confirmationCode,
-    };
-
-    await cognito.confirmSignUp(params).promise();
+    }).promise()
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ message: 'User confirmed successfully.' }),
-    };
+    }
   } catch (error) {
-    console.error('Confirm SignUp Error:', error);
+    console.error('Confirm SignUp Error:', error)
+    const code = error.code || ''
+    const statusCode = (
+      code === 'CodeMismatchException' ||
+      code === 'ExpiredCodeException' ||
+      code === 'NotAuthorizedException' ||
+      code === 'UserNotFoundException'
+    ) ? 400 : 500
+
     return {
-      statusCode: 500,
+      statusCode,
       headers,
       body: JSON.stringify({
-        message: 'Failed to confirm user',
-        error: error.message || 'Unknown error'
+        message: error.message || 'Failed to confirm user',
+        code: error.code || 'Error',
       }),
-    };
+    }
   }
-};
+}

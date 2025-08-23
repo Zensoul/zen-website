@@ -1,39 +1,43 @@
 service: zen-backend
+useDotenv: true
 
 provider:
   name: aws
   runtime: nodejs18.x
   region: ap-south-1
+  profile: zensoul-dev
 
-  # Environment variables available to all Lambdas
   environment:
     USERS_TABLE: ZenUsers
     JWT_SECRET: ${env:JWT_SECRET}
     COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    # Add your User Pool ARN in .env as COGNITO_USER_POOL_ARN
+    COGNITO_USER_POOL_ARN: ${env:COGNITO_USER_POOL_ARN}
     ASSESSMENTS_TABLE: ${env:ASSESSMENTS_TABLE, 'ZenAssessments'}
     COUNSELLORS_TABLE: ${env:COUNSELLORS_TABLE, 'ZenCounsellors'}
     APPOINTMENTS_TABLE: ZenAppointments
+    ADMIN_SEED_TOKEN: ${env:ADMIN_SEED_TOKEN, 'unset'}
+    ADMIN_SEED_TOKEN_PATH: /zen/adminSeedToken
+    CONSULTATIONS_TABLE: ZenConsultations
 
-  # Permissions for DynamoDB, Cognito, etc.
   iamRoleStatements:
     - Effect: Allow
       Action:
-        # ZenUsers table
         - dynamodb:PutItem
         - dynamodb:GetItem
         - dynamodb:Query
         - dynamodb:UpdateItem
-        # Cognito flows
         - cognito-idp:SignUp
         - cognito-idp:ConfirmSignUp
         - cognito-idp:InitiateAuth
+        - ssm:GetParameter
       Resource:
+        - arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter/zen/adminSeedToken
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}/index/EmailIndex
 
     - Effect: Allow
       Action:
-        # ZenAssessments table
         - dynamodb:PutItem
         - dynamodb:Query
       Resource:
@@ -42,7 +46,6 @@ provider:
 
     - Effect: Allow
       Action:
-        # ZenCounsellors table (existing)
         - dynamodb:Scan
         - dynamodb:GetItem
       Resource:
@@ -56,8 +59,18 @@ provider:
         - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments
         - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments/index/CounsellorDateSlotIndex
 
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Query
+        - dynamodb:UpdateItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/ZenConsultations
+        - arn:aws:dynamodb:${self:provider.region}:*:table/ZenConsultations/index/DateIndex
 
 functions:
+  # Auth (REST) — public
   signup:
     handler: functions/auth/signup.handler
     events:
@@ -82,6 +95,7 @@ functions:
           method: post
           cors: true
 
+  # Assessments (REST) — requires a logged-in user on the frontend; backend stays open unless you add authorizer
   submitAssessment:
     handler: functions/assessment/submit.handler
     events:
@@ -98,6 +112,7 @@ functions:
           method: get
           cors: true
 
+  # Counsellors (REST)
   listCounsellors:
     handler: functions/counsellors/list.handler
     events:
@@ -106,6 +121,7 @@ functions:
           method: get
           cors: true
 
+  # Appointments (REST)
   checkAvailability:
     handler: functions/appointments/checkAvailability.handler
     events:
@@ -122,8 +138,69 @@ functions:
           method: post
           cors: true
 
+  # Consultations (REST — using API Gateway v1 'http' so CORS config below works)
+  createConsultation:
+    handler: functions/consultations/create.handler
+    events:
+      - http:
+          method: post
+          path: /consultations
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: true
+
+  consultationAvailability:
+    handler: functions/consultations/checkAvailability.handler
+    events:
+      - http:
+          method: get
+          path: /consultations/availability
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: true
+
+  seedAdmin:
+    handler: functions/admin/seed.handler
+    events:
+      - http:
+          path: /admin/seed
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            arn: ${self:provider.environment.COGNITO_USER_POOL_ARN}  # HIGHLIGHT: use ARN var
+
+          # NOTE: Remove "claims:" here. API Gateway will still pass claims to
+
+  me:
+    handler: functions/auth/me.handler
+    events:
+      - http:
+          path: /auth/me
+          method: get
+          cors: true  # returns CORS even on 401            
+
 plugins:
   - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+    lambdaPort: 3002
+    noPrependStageInUrl: false
+    stage: ${sls:stage}
 
 resources:
   Resources:
@@ -170,6 +247,53 @@ resources:
               ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
-  # Note: The ZenCounsellorsTable resource has been removed because
-  # the table already exists. IAM permissions still allow your
-  # Lambda to scan the existing table.
+    ZenConsultationsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ZenConsultations
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: date
+            AttributeType: S
+          - AttributeName: time
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: DateIndex
+            KeySchema:
+              - AttributeName: date
+                KeyType: HASH
+              - AttributeName: time
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    # API Gateway default responses with CORS so 401/403/500 include CORS headers
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        StatusCode: '400'
+    GatewayResponseDefault5XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        StatusCode: '500'
+
+  # Note: The ZenCounsellorsTable resource is not created here since it already exists.

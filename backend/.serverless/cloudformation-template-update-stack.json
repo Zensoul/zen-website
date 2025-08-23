@@ -50,6 +50,30 @@
         "LogGroupName": "/aws/lambda/zen-backend-dev-createAppointment"
       }
     },
+    "CreateConsultationLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-createConsultation"
+      }
+    },
+    "ConsultationAvailabilityLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-consultationAvailability"
+      }
+    },
+    "SeedAdminLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-seedAdmin"
+      }
+    },
+    "MeLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/zen-backend-dev-me"
+      }
+    },
     "IamRoleLambdaExecution": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -117,9 +141,11 @@
                     "dynamodb:UpdateItem",
                     "cognito-idp:SignUp",
                     "cognito-idp:ConfirmSignUp",
-                    "cognito-idp:InitiateAuth"
+                    "cognito-idp:InitiateAuth",
+                    "ssm:GetParameter"
                   ],
                   "Resource": [
+                    "arn:aws:ssm:ap-south-1:521529522607:parameter/zen/adminSeedToken",
                     "arn:aws:dynamodb:ap-south-1:*:table/ZenUsers",
                     "arn:aws:dynamodb:ap-south-1:*:table/ZenUsers/index/EmailIndex"
                   ]
@@ -153,6 +179,19 @@
                     "arn:aws:dynamodb:ap-south-1:*:table/ZenAppointments",
                     "arn:aws:dynamodb:ap-south-1:*:table/ZenAppointments/index/CounsellorDateSlotIndex"
                   ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenConsultations",
+                    "arn:aws:dynamodb:ap-south-1:*:table/ZenConsultations/index/DateIndex"
+                  ]
                 }
               ]
             }
@@ -179,7 +218,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/auth/signup.handler",
         "Runtime": "nodejs18.x",
@@ -189,11 +228,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -212,7 +255,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/auth/login.handler",
         "Runtime": "nodejs18.x",
@@ -222,11 +265,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -245,7 +292,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/auth/confirm.handler",
         "Runtime": "nodejs18.x",
@@ -255,11 +302,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -278,7 +329,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/assessment/submit.handler",
         "Runtime": "nodejs18.x",
@@ -288,11 +339,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -311,7 +366,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/assessment/list.handler",
         "Runtime": "nodejs18.x",
@@ -321,11 +376,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -344,7 +403,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/counsellors/list.handler",
         "Runtime": "nodejs18.x",
@@ -354,11 +413,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -377,7 +440,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/appointments/checkAvailability.handler",
         "Runtime": "nodejs18.x",
@@ -387,11 +450,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -410,7 +477,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
-          "S3Key": "serverless/zen-backend/dev/1754657019688-2025-08-08T12:43:39.688Z/zen-backend.zip"
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
         },
         "Handler": "functions/appointments/createAppointment.handler",
         "Runtime": "nodejs18.x",
@@ -420,11 +487,15 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "ZenUsers",
-            "JWT_SECRET": "0b59989017ca6354b8654cbb775f98dab655bab0cf5ec932815849d8cf080442",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
             "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
             "ASSESSMENTS_TABLE": "ZenAssessments",
             "COUNSELLORS_TABLE": "ZenCounsellors",
-            "APPOINTMENTS_TABLE": "ZenAppointments"
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
           }
         },
         "Role": {
@@ -438,84 +509,272 @@
         "CreateAppointmentLogGroup"
       ]
     },
-    "SignupLambdaVersionJAzRCh8zl3UbBH6ej51IjMYnSwFFeUkk4PA3ZyUnGs": {
+    "CreateConsultationLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
+        },
+        "Handler": "functions/consultations/create.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-createConsultation",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "CreateConsultationLogGroup"
+      ]
+    },
+    "ConsultationAvailabilityLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
+        },
+        "Handler": "functions/consultations/checkAvailability.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-consultationAvailability",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ConsultationAvailabilityLogGroup"
+      ]
+    },
+    "SeedAdminLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
+        },
+        "Handler": "functions/admin/seed.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-seedAdmin",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SeedAdminLogGroup"
+      ]
+    },
+    "MeLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-ap-south-1-218199db-4340",
+          "S3Key": "serverless/zen-backend/dev/1755923904486-2025-08-23T04:38:24.486Z/zen-backend.zip"
+        },
+        "Handler": "functions/auth/me.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "zen-backend-dev-me",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "USERS_TABLE": "ZenUsers",
+            "JWT_SECRET": "3da13114b94fd31a1e357b568f7f46124528baac3902e82dbe7c9c6efe168f36",
+            "COGNITO_CLIENT_ID": "4eno2hc46uq99e9e23v54gcp6f",
+            "COGNITO_USER_POOL_ARN": "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn",
+            "ASSESSMENTS_TABLE": "ZenAssessments",
+            "COUNSELLORS_TABLE": "ZenCounsellors",
+            "APPOINTMENTS_TABLE": "ZenAppointments",
+            "ADMIN_SEED_TOKEN": "cc95e2a31896995d437fb35208b3215131fcbbedc9147091eb35f867aa5722b4",
+            "ADMIN_SEED_TOKEN_PATH": "/zen/adminSeedToken",
+            "CONSULTATIONS_TABLE": "ZenConsultations"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "MeLogGroup"
+      ]
+    },
+    "SignupLambdaVersionfxSTu2CD1jfVk3xFTo9kd2CveFVgPu8JsBq7UL7d8Pw": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "SignupLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "LoginLambdaVersionovTnkz8OCEtA1dRWfSwtfVs5440JUmU8yoqLO9vMbPI": {
+    "LoginLambdaVersioncim8vn2jU8n7NGP5OnGNRENmSk3aRL2Fso643E8RJ5Y": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "LoginLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "ConfirmUserLambdaVersionK58rLorlzKuuveH4hZSu4N9Wa8OG4FQRlrgPshDTGU": {
+    "ConfirmUserLambdaVersionzMTEEsg5Av1sHZWdeCqv1Cpq3411cS9JzpLhaE": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ConfirmUserLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "SubmitAssessmentLambdaVersioncvCsM5U1mZz3sTwskYbB7CTy2MV3ipTuayZPVTXFs": {
+    "SubmitAssessmentLambdaVersionQhkyCwc4NsBBVPE0TJI2Ccfsa6R1pMIV1ujdkfBg": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "SubmitAssessmentLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "AssessmentListLambdaVersioncBfX9W9yNBeQVcDuuZ8DQgfuKV6PY92vQ5PFkVR7Xpg": {
+    "AssessmentListLambdaVersionLy5vvG2sOVDWOQV38b4QmNJJhILVp07zRmT7tqQ88": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AssessmentListLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "ListCounsellorsLambdaVersionUfmeVYzljcozygtLpdHQGFMjZSnsYzqGOmYXimek": {
+    "ListCounsellorsLambdaVersiontLdnbwl5P350WtDrnNlN5xxvVI7eRPFIO1nVEmABk": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ListCounsellorsLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "CheckAvailabilityLambdaVersionoe1D9DaUPkdS5GYM0DckwyWXtou6hGScn2s22Bce2U4": {
+    "CheckAvailabilityLambdaVersionoFkjcFzOlReSbX2zlKIIx0if8Vwfx6j4BWDjvQexw": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "CheckAvailabilityLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
-    "CreateAppointmentLambdaVersion5uNmJtaDsMT4K4NErOz9CsYfr69YivjUe3X4Dmfro": {
+    "CreateAppointmentLambdaVersionVZgrYZRAuxltVZUm5gNOAEjKo9MLkSXZ6IDbVdlk4": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "CreateAppointmentLambdaFunction"
         },
-        "CodeSha256": "e3aie0Nu0dqkjgS9C0MxYvL9m6vO6+e6N7a/C88LAkg="
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
+      }
+    },
+    "CreateConsultationLambdaVersionKQX9JQY8j5n31cekqzfFmHMCP7L3EUw54RM22CGsv4M": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "CreateConsultationLambdaFunction"
+        },
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
+      }
+    },
+    "ConsultationAvailabilityLambdaVersionZl4zk6aOrvGQZN14xFW3hRdul5gFT487P8keJ7vs0": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ConsultationAvailabilityLambdaFunction"
+        },
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
+      }
+    },
+    "SeedAdminLambdaVersionLumGb1x5rWHcZRwYMO7s0MZUhktsChfJYeawclzmTzw": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SeedAdminLambdaFunction"
+        },
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
+      }
+    },
+    "MeLambdaVersionTRrfz08uuAQzfQPO1NCEvYqvsGjjt0UVQqxDEoQg3zo": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "MeLambdaFunction"
+        },
+        "CodeSha256": "j3/y3WGYDWAsT/bZC4Z8E8zqvitSbQJWU8mxAc1ldjg="
       }
     },
     "ApiGatewayRestApi": {
@@ -581,6 +840,18 @@
         }
       }
     },
+    "ApiGatewayResourceAuthMe": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceAuth"
+        },
+        "PathPart": "me",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
     "ApiGatewayResourceAssessment": {
       "Type": "AWS::ApiGateway::Resource",
       "Properties": {
@@ -633,6 +904,60 @@
           "Ref": "ApiGatewayResourceAppointments"
         },
         "PathPart": "check-availability",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceConsultations": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "consultations",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceConsultationsAvailability": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceConsultations"
+        },
+        "PathPart": "availability",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAdmin": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "admin",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceAdminSeed": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceAdmin"
+        },
+        "PathPart": "seed",
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
@@ -947,6 +1272,190 @@
         },
         "ResourceId": {
           "Ref": "ApiGatewayResourceAppointments"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodConsultationsOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Credentials": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3000'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                "method.response.header.Access-Control-Allow-Credentials": "'true'"
+              },
+              "ResponseTemplates": {
+                "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://www[.]zensoulwellness[.]com\") || $origin.matches(\"https://zensoulwellness[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceConsultations"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodConsultationsAvailabilityOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Credentials": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3000'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                "method.response.header.Access-Control-Allow-Credentials": "'true'"
+              },
+              "ResponseTemplates": {
+                "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://www[.]zensoulwellness[.]com\") || $origin.matches(\"https://zensoulwellness[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceConsultationsAvailability"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAdminSeedOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAdminSeed"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodAuthMeOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthMe"
         },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
@@ -1321,7 +1830,209 @@
         "CreateAppointmentLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1754656960696": {
+    "ApiGatewayMethodConsultationsPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceConsultations"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "CreateConsultationLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "CreateConsultationLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodConsultationsAvailabilityGet": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "GET",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceConsultationsAvailability"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "ConsultationAvailabilityLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "ConsultationAvailabilityLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayMethodAdminSeedPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAdminSeed"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "COGNITO_USER_POOLS",
+        "AuthorizerId": {
+          "Ref": "1UnderscoreRU89LdMEnApiGatewayAuthorizer"
+        },
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "SeedAdminLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "1UnderscoreRU89LdMEnApiGatewayAuthorizer"
+      ]
+    },
+    "ApiGatewayMethodAuthMeGet": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "GET",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceAuthMe"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "MeLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "MeLambdaPermissionApiGateway"
+      ]
+    },
+    "1UnderscoreRU89LdMEnApiGatewayAuthorizer": {
+      "Type": "AWS::ApiGateway::Authorizer",
+      "Properties": {
+        "AuthorizerResultTtlInSeconds": 300,
+        "IdentitySource": "method.request.header.Authorization",
+        "Name": "1_RU89LdMEn",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "Type": "COGNITO_USER_POOLS",
+        "ProviderARNs": [
+          "arn:aws:cognito-idp:ap-south-1:521529522607:userpool/ap-south-1_RU89LdMEn"
+        ]
+      }
+    },
+    "ApiGatewayDeployment1755923888451": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -1337,6 +2048,10 @@
         "ApiGatewayMethodCounsellorsOptions",
         "ApiGatewayMethodAppointmentsCheckDashavailabilityOptions",
         "ApiGatewayMethodAppointmentsOptions",
+        "ApiGatewayMethodConsultationsOptions",
+        "ApiGatewayMethodConsultationsAvailabilityOptions",
+        "ApiGatewayMethodAdminSeedOptions",
+        "ApiGatewayMethodAuthMeOptions",
         "ApiGatewayMethodAuthSignupPost",
         "ApiGatewayMethodAuthLoginPost",
         "ApiGatewayMethodAuthConfirmPost",
@@ -1344,7 +2059,11 @@
         "ApiGatewayMethodAssessmentGet",
         "ApiGatewayMethodCounsellorsGet",
         "ApiGatewayMethodAppointmentsCheckDashavailabilityGet",
-        "ApiGatewayMethodAppointmentsPost"
+        "ApiGatewayMethodAppointmentsPost",
+        "ApiGatewayMethodConsultationsPost",
+        "ApiGatewayMethodConsultationsAvailabilityGet",
+        "ApiGatewayMethodAdminSeedPost",
+        "ApiGatewayMethodAuthMeGet"
       ]
     },
     "SignupLambdaPermissionApiGateway": {
@@ -1643,6 +2362,154 @@
         }
       }
     },
+    "CreateConsultationLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CreateConsultationLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "ConsultationAvailabilityLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ConsultationAvailabilityLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "SeedAdminLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SeedAdminLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "MeLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "MeLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
     "ZenUsersTable": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
@@ -1716,6 +2583,81 @@
         ],
         "BillingMode": "PAY_PER_REQUEST"
       }
+    },
+    "ZenConsultationsTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "ZenConsultations",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "date",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "time",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "id",
+            "KeyType": "HASH"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "DateIndex",
+            "KeySchema": [
+              {
+                "AttributeName": "date",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "time",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            }
+          }
+        ]
+      }
+    },
+    "GatewayResponseDefault4XX": {
+      "Type": "AWS::ApiGateway::GatewayResponse",
+      "Properties": {
+        "ResponseType": "DEFAULT_4XX",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ResponseParameters": {
+          "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+          "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+          "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,OPTIONS'"
+        },
+        "StatusCode": "400"
+      }
+    },
+    "GatewayResponseDefault5XX": {
+      "Type": "AWS::ApiGateway::GatewayResponse",
+      "Properties": {
+        "ResponseType": "DEFAULT_5XX",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ResponseParameters": {
+          "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+          "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+          "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,OPTIONS'"
+        },
+        "StatusCode": "500"
+      }
     }
   },
   "Outputs": {
@@ -1728,7 +2670,7 @@
     "SignupLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "SignupLambdaVersionJAzRCh8zl3UbBH6ej51IjMYnSwFFeUkk4PA3ZyUnGs"
+        "Ref": "SignupLambdaVersionfxSTu2CD1jfVk3xFTo9kd2CveFVgPu8JsBq7UL7d8Pw"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-SignupLambdaFunctionQualifiedArn"
@@ -1737,7 +2679,7 @@
     "LoginLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "LoginLambdaVersionovTnkz8OCEtA1dRWfSwtfVs5440JUmU8yoqLO9vMbPI"
+        "Ref": "LoginLambdaVersioncim8vn2jU8n7NGP5OnGNRENmSk3aRL2Fso643E8RJ5Y"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-LoginLambdaFunctionQualifiedArn"
@@ -1746,7 +2688,7 @@
     "ConfirmUserLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ConfirmUserLambdaVersionK58rLorlzKuuveH4hZSu4N9Wa8OG4FQRlrgPshDTGU"
+        "Ref": "ConfirmUserLambdaVersionzMTEEsg5Av1sHZWdeCqv1Cpq3411cS9JzpLhaE"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-ConfirmUserLambdaFunctionQualifiedArn"
@@ -1755,7 +2697,7 @@
     "SubmitAssessmentLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "SubmitAssessmentLambdaVersioncvCsM5U1mZz3sTwskYbB7CTy2MV3ipTuayZPVTXFs"
+        "Ref": "SubmitAssessmentLambdaVersionQhkyCwc4NsBBVPE0TJI2Ccfsa6R1pMIV1ujdkfBg"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-SubmitAssessmentLambdaFunctionQualifiedArn"
@@ -1764,7 +2706,7 @@
     "AssessmentListLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AssessmentListLambdaVersioncBfX9W9yNBeQVcDuuZ8DQgfuKV6PY92vQ5PFkVR7Xpg"
+        "Ref": "AssessmentListLambdaVersionLy5vvG2sOVDWOQV38b4QmNJJhILVp07zRmT7tqQ88"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-AssessmentListLambdaFunctionQualifiedArn"
@@ -1773,7 +2715,7 @@
     "ListCounsellorsLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ListCounsellorsLambdaVersionUfmeVYzljcozygtLpdHQGFMjZSnsYzqGOmYXimek"
+        "Ref": "ListCounsellorsLambdaVersiontLdnbwl5P350WtDrnNlN5xxvVI7eRPFIO1nVEmABk"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-ListCounsellorsLambdaFunctionQualifiedArn"
@@ -1782,7 +2724,7 @@
     "CheckAvailabilityLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "CheckAvailabilityLambdaVersionoe1D9DaUPkdS5GYM0DckwyWXtou6hGScn2s22Bce2U4"
+        "Ref": "CheckAvailabilityLambdaVersionoFkjcFzOlReSbX2zlKIIx0if8Vwfx6j4BWDjvQexw"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-CheckAvailabilityLambdaFunctionQualifiedArn"
@@ -1791,10 +2733,46 @@
     "CreateAppointmentLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "CreateAppointmentLambdaVersion5uNmJtaDsMT4K4NErOz9CsYfr69YivjUe3X4Dmfro"
+        "Ref": "CreateAppointmentLambdaVersionVZgrYZRAuxltVZUm5gNOAEjKo9MLkSXZ6IDbVdlk4"
       },
       "Export": {
         "Name": "sls-zen-backend-dev-CreateAppointmentLambdaFunctionQualifiedArn"
+      }
+    },
+    "CreateConsultationLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "CreateConsultationLambdaVersionKQX9JQY8j5n31cekqzfFmHMCP7L3EUw54RM22CGsv4M"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-CreateConsultationLambdaFunctionQualifiedArn"
+      }
+    },
+    "ConsultationAvailabilityLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ConsultationAvailabilityLambdaVersionZl4zk6aOrvGQZN14xFW3hRdul5gFT487P8keJ7vs0"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-ConsultationAvailabilityLambdaFunctionQualifiedArn"
+      }
+    },
+    "SeedAdminLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SeedAdminLambdaVersionLumGb1x5rWHcZRwYMO7s0MZUhktsChfJYeawclzmTzw"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-SeedAdminLambdaFunctionQualifiedArn"
+      }
+    },
+    "MeLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "MeLambdaVersionTRrfz08uuAQzfQPO1NCEvYqvsGjjt0UVQqxDEoQg3zo"
+      },
+      "Export": {
+        "Name": "sls-zen-backend-dev-MeLambdaFunctionQualifiedArn"
       }
     },
     "ServiceEndpoint": {

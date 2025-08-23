@@ -36,7 +36,7 @@ export default function PaymentModal({ open, onClose, appointment, amount }) {
   }
 
   return (
-    <Dialog open={open} onClose={onClose} className="z-[70]">
+    <Dialog open={open} onClose={onClose} className="z-[1200]">
       <DialogBackdrop className="fixed inset-0 bg-black/50" />
       <div className="fixed inset-0 flex items-center justify-center px-3 py-4 sm:p-6">
         <DialogPanel className="bg-white w-full max-w-md sm:max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden">
