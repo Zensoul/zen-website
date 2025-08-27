@@ -1,42 +1,42 @@
 // frontend/app/login/LoginClient.jsx
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import AuthModal from '@/components/AuthModal'
-import { useUser } from '@/context/UserContext'
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import AuthModal from '@/components/AuthModal';
+import { useUser } from '@/context/UserContext';
 
 export default function LoginClient({ nextFromQuery = '/' }) {
-  const router = useRouter()
-  const { user } = useUser()
-  const [open, setOpen] = useState(true)
+  const router = useRouter();
+  const { user } = useUser();
+  const [open, setOpen] = useState(true);
 
-  // Decide the redirect target entirely from the server-provided prop
-  const next = nextFromQuery || '/'
+  // Redirect target decided from server-provided prop (no useSearchParams on client)
+  const next = nextFromQuery || '/';
 
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
     if (user.isAdmin) {
-      router.replace(next.startsWith('/admin') ? next : '/admin')
+      router.replace(next.startsWith('/admin') ? next : '/admin');
     } else {
-      router.replace(next && next !== '/admin' ? next : '/dashboard')
+      router.replace(next && next !== '/admin' ? next : '/dashboard');
     }
-  }, [user, next, router])
+  }, [user, next, router]);
 
   const handleClose = () => {
-    setOpen(false)
+    setOpen(false);
     if (user?.isAdmin) {
-      router.replace(next.startsWith('/admin') ? next : '/admin')
+      router.replace(next.startsWith('/admin') ? next : '/admin');
     } else if (user) {
-      router.replace(next && next !== '/admin' ? next : '/dashboard')
+      router.replace(next && next !== '/admin' ? next : '/dashboard');
     } else {
-      router.replace('/')
+      router.replace('/');
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <AuthModal open={open} onClose={handleClose} skipRedirect />
     </div>
-  )
+  );
 }
