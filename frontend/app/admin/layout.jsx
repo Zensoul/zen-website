@@ -1,6 +1,6 @@
 // frontend/app/admin/layout.jsx
 "use client";
-import AdminShell from "@/components/admin/AdminShell";
+import AdminShell from "./AdminShell";
 import useRequireAdmin from "@/hooks/useRequireAdmin";
 
 export default function AdminLayout({ children }) {

@@ -10,9 +10,10 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import AuthModal from '@/components/AuthModal';
 import BookingModal from './BookingModal';
+import QuickConnectModal from './QuickConnectModal';
 import Stepper from './Stepper';
 import QuestionCard from './QuestionCard';
-import { submitAssessment, listCounsellors } from '@/lib/api';
+import { submitAssessment, recommendTherapists } from '@/lib/api';
 
 // --- concise triage sets ---
 const AUDIT5 = [
@@ -39,7 +40,7 @@ export default function QuickAddictionTestModal({ open, onClose }) {
   // view: 'test' => triage & review; 'matching' => therapist list (same Dialog)
   const [view, setView] = useState('test');
 
-  // hide main dialog while auth/booking modals are open
+  // hide main dialog while auth/booking/quick-connect are open
   const [hideMain, setHideMain] = useState(false);
 
   // steps within 'test' view
@@ -61,19 +62,23 @@ export default function QuickAddictionTestModal({ open, onClose }) {
   const [matched, setMatched] = useState([]);
   const [loginOpen, setLoginOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+
   const [chosenCounsellor, setChosenCounsellor] = useState(null);
 
   // persistent focusable element to satisfy HeadlessUI focus trap
   const focusRef = useRef(null);
 
-  // After login, show booking and keep main dialog hidden
+  // After login, if flow demanded booking, show booking and keep main dialog hidden
   useEffect(() => {
     if (loginOpen && isAuthenticated) {
       setLoginOpen(false);
-      setBookingOpen(true);
-      setHideMain(true);
+      if (chosenCounsellor) {
+        setBookingOpen(true);
+        setHideMain(true);
+      }
     }
-  }, [loginOpen, isAuthenticated]);
+  }, [loginOpen, isAuthenticated, chosenCounsellor]);
 
   // Reset on close
   useEffect(() => {
@@ -92,6 +97,7 @@ export default function QuickAddictionTestModal({ open, onClose }) {
       setChosenCounsellor(null);
       setLoginOpen(false);
       setBookingOpen(false);
+      setQuickOpen(false);
     }
   }, [open]);
 
@@ -115,7 +121,10 @@ export default function QuickAddictionTestModal({ open, onClose }) {
 
   // normalize counsellor shape (ensure .id exists)
   function normalizeCounsellor(c) {
-    return { ...c, id: c?.id ?? c?.counsellorId ?? c?.counselorId };
+    return {
+      ...c,
+      id: c?.id ?? c?.counsellorId ?? c?.counselorId ?? c?._id ?? c?.email ?? `${c?.name}-${c?.specialization}`
+    };
   }
 
   // ----- submit -> matching (in same dialog) -----
@@ -147,10 +156,18 @@ export default function QuickAddictionTestModal({ open, onClose }) {
       // switch to matching view
       setView('matching');
 
-      // fetch counsellors
+      // fetch counsellors via recommender (uses your backend /match/recommend)
       try {
-        const { counsellors } = await listCounsellors({ category: 'Addiction' });
-        setMatched((counsellors || []).slice(0, 6));
+        const recPayload = {
+          category: 'Addiction',
+          addictionTypes: types,
+          audit5: audit,
+          dast10: dast,      // we accept short on BE by mapping booleans
+          iat10: iat
+        };
+        const res = await recommendTherapists(recPayload);
+        const counsellors = res?.counsellors || res?.matches || [];
+        setMatched(counsellors.slice(0, 6));
       } catch {
         setMatched([]);
       }
@@ -345,7 +362,21 @@ export default function QuickAddictionTestModal({ open, onClose }) {
           </div>
         ) : (
           <>
-            <h2 className="text-2xl font-bold text-gray-800">Recommended Therapists</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-800">Recommended Therapists</h2>
+              {/* Quick-connect also accessible from matches view */}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!isAuthenticated) { setLoginOpen(true); return; }
+                  setQuickOpen(true);
+                  setHideMain(true);
+                }}
+              >
+                Talk to a counsellor now
+              </Button>
+            </div>
+
             <ul className="space-y-4 max-h-80 overflow-y-auto">
               {matched.map((raw) => {
                 const c = normalizeCounsellor(raw);
@@ -446,13 +477,27 @@ export default function QuickAddictionTestModal({ open, onClose }) {
                         Next
                       </Button>
                     ) : (
-                      <Button
-                        className="bg-[#c9a96a] text-white hover:bg-[#b3945a] px-6 py-2 rounded-full"
-                        onClick={handleSubmit}
-                        disabled={loading}
-                      >
-                        {loading ? 'Submitting…' : isPositive ? 'See Matches' : 'See Options'}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="px-6 py-2 rounded-full"
+                          onClick={() => {
+                            if (!isAuthenticated) { setLoginOpen(true); return; }
+                            setQuickOpen(true);     // open “talk now”
+                            setHideMain(true);
+                          }}
+                          disabled={loading}
+                        >
+                          Talk to a counsellor now
+                        </Button>
+                        <Button
+                          className="bg-[#c9a96a] text-white hover:bg-[#b3945a] px-6 py-2 rounded-full"
+                          onClick={handleSubmit}
+                          disabled={loading}
+                        >
+                          {loading ? 'Submitting…' : isPositive ? 'See matches' : 'See options'}
+                        </Button>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -483,11 +528,33 @@ export default function QuickAddictionTestModal({ open, onClose }) {
         open={loginOpen}
         onClose={() => {
           setLoginOpen(false);
-          // if user cancels, show main dialog again (matching view)
+          // if user cancels, show main dialog again (matching view if we were matching)
           setHideMain(false);
-          setView('matching');
+          if (view !== 'test') setView('matching');
         }}
         skipRedirect
+      />
+
+      {/* Quick-connect modal (today’s availability) */}
+      <QuickConnectModal
+        open={quickOpen}
+        onClose={() => {
+          setQuickOpen(false);
+          setHideMain(false);
+        }}
+        category="Addiction"
+        onSelectCounsellor={(c) => {
+          setQuickOpen(false);
+          setChosenCounsellor(c);
+          // booking path (ensure auth)
+          if (!isAuthenticated) {
+            setHideMain(true);
+            setLoginOpen(true);
+            return;
+          }
+          setHideMain(true);
+          setBookingOpen(true);
+        }}
       />
 
       <BookingModal

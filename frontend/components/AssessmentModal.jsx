@@ -14,7 +14,8 @@ import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import BookingModal from './BookingModal'
-import { submitAssessment, listCounsellors } from '@/lib/api'
+import { submitAssessment, recommendTherapists } from '@/lib/api'
+import QuickConnectModal from './QuickConnectModal'
 
 
 // Standard questionnaires
@@ -77,6 +78,7 @@ const PHQ9_QUESTIONS = [
 export default function AssessmentModal({ open, onClose, onBookNow }) {
   const { user, isAuthenticated } = useUser()
   const [selectedCounsellor, setSelectedCounsellor] = useState(null)
+  const [quickOpen, setQuickOpen] = useState(false)
 
   // Steps: 1=Consent, 2=Category, 3=Branch Qs, 4=Review & Submit
   const [step, setStep] = useState(1)
@@ -166,9 +168,9 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
       setShowMatching(true)
       setTimeout(async () => {
         try {
-          // [CHANGED] use API helper instead of fetch
-          const { counsellors } = await listCounsellors({ category: data.category })
-          console.log('[AssessmentModal] Matched counsellors:', counsellors);
+          // NEW: call recommender
+          const res = await recommendTherapists(payload)
+          const counsellors = res?.counsellors || []
           setMatchedCounsellors(counsellors.slice(0, 5))
         } catch (err) {
           console.error(err)
@@ -204,7 +206,7 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Recommended Therapists</h2>
                 <ul className="space-y-4 max-h-80 overflow-y-auto">
                   {matchedCounsellors.map(c => (
-                    <li key={c.id} className="border border-gray-200 p-5 rounded-2xl shadow-lg">
+                   <li key={c.counsellorId || c.id || c.email} className="border border-gray-200 p-5 rounded-2xl shadow-lg">
                       <p className="font-semibold text-gray-800 text-lg">{c.name}</p>
                       <p className="text-sm text-gray-600 mt-1">{c.specialization}</p>
                       <p className="text-sm text-gray-600 mt-1">
@@ -615,14 +617,28 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
                   Next
                 </Button>
               ) : (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="px-6 py-2 rounded-full"
+                    onClick={() => {
+                // require login before opening quick connect
+                      if (!isAuthenticated) { setLoginOpen(true); return }
+                      setQuickOpen(true)
+                      }}
+                      disabled={loading}
+                    >
+                    Talk to a counsellor now
+                </Button>
                 <Button
                   className="bg-[#c9a96a] text-white hover:bg-[#b3945a] px-6 py-2 rounded-full"
                   onClick={handleSubmit}
                   disabled={loading}
                 >
-                  {loading ? 'Submitting…' : 'Submit'}
+                {loading ? 'Submitting…' : 'See matches'}
                 </Button>
-              )}
+   </div>
+ )}
             </div>
           </DialogPanel>
         </div>
@@ -633,6 +649,16 @@ export default function AssessmentModal({ open, onClose, onBookNow }) {
         onClose={() => setLoginOpen(false)}
         skipRedirect={true}
       />
+      <QuickConnectModal
+     open={quickOpen}
+     onClose={() => setQuickOpen(false)}
+     category={data.category}
+     onSelectCounsellor={(c) => {
+       setQuickOpen(false)
+       // same behavior as “Book Now” in matches:
+       onBookNow?.(c)
+     }}
+   />
       
     </>
   )

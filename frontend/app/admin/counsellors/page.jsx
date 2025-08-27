@@ -1,54 +1,80 @@
-// frontend/app/admin/counsellors/page.jsx
-"use client";
-import { useEffect, useState } from "react";
-import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
+'use client';
+import { useEffect, useState } from 'react';
+import {
+  adminListCounsellors,
+  adminCreateCounsellor,
+  adminUpdateCounsellor,
+  adminDeleteCounsellor,
+} from '@/lib/api';
+
+function pickId(c, fallbackIndex) {
+  return (
+    c?.counsellorId ??
+    c?.counselorId ??   // just in case of alt spelling
+    c?.id ??
+    c?._id ??
+    (c?.email ? `email:${c.email}` : `row-${fallbackIndex}`) // last resort
+  );
+}
 
 export default function AdminCounsellorsPage() {
   const [rows, setRows] = useState([]);
-  const [form, setForm] = useState({ name: "", specialization: "", feePerSessionINR: 0 });
-  const [editing, setEditing] = useState(null);
-  const [err, setErr] = useState("");
+  const [form, setForm] = useState({ name: '', specialization: '', feePerSessionINR: 0 });
+  const [editingId, setEditingId] = useState(null);
+  const [err, setErr] = useState('');
 
-  const load = () =>
-    apiGet("/admin/counsellors")
-      .then((res) => setRows(res.counsellors || []))
-      .catch((e) => setErr(e.message || "Failed"));
+  const load = async () => {
+    setErr('');
+    try {
+      const res = await adminListCounsellors();
+      // backend returns { ok, items, nextKey }
+      const items = Array.isArray(res?.items) ? res.items : [];
+      setRows(items);
+    } catch (e) {
+      setErr(e?.message || 'Failed to load');
+    }
+  };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const save = async () => {
-    setErr("");
+    setErr('');
     try {
-      if (editing) {
-        await apiPut(`/admin/counsellors/${editing}`, form);
+      if (editingId) {
+        await adminUpdateCounsellor({ counsellorId: editingId, ...form });
       } else {
-        await apiPost("/admin/counsellors", form);
+        await adminCreateCounsellor(form);
       }
-      setForm({ name: "", specialization: "", feePerSessionINR: 0 });
-      setEditing(null);
-      load();
+      setForm({ name: '', specialization: '', feePerSessionINR: 0 });
+      setEditingId(null);
+      await load();
     } catch (e) {
-      setErr(e.message || "Save failed");
+      setErr(e?.message || 'Save failed');
     }
   };
 
   const startEdit = (c) => {
-    setEditing(c._id);
+    const id = pickId(c, 0);
+    setEditingId(id);
     setForm({
-      name: c.name || "",
-      specialization: c.specialization || "",
-      feePerSessionINR: c.feePerSessionINR || 0,
+      name: c?.name || '',
+      specialization: c?.specialization || '',
+      feePerSessionINR: c?.feePerSessionINR ?? 0,
     });
   };
 
-  const remove = async (id) => {
-    if (!confirm("Delete counsellor?")) return;
-    setErr("");
+  const remove = async (c) => {
+    const id = pickId(c, 0);
+    if (!id) return setErr('Unable to determine counsellor id.');
+    if (!confirm('Delete counsellor?')) return;
+    setErr('');
     try {
-      await apiDelete(`/admin/counsellors/${id}`);
-      load();
+      await adminDeleteCounsellor(id);
+      await load();
     } catch (e) {
-      setErr(e.message || "Delete failed");
+      setErr(e?.message || 'Delete failed');
     }
   };
 
@@ -58,7 +84,7 @@ export default function AdminCounsellorsPage() {
       {err && <p className="text-red-600">{err}</p>}
 
       <div className="border rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold">{editing ? "Edit counsellor" : "Add counsellor"}</h2>
+        <h2 className="font-semibold">{editingId ? 'Edit counsellor' : 'Add counsellor'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <input
             className="border rounded-lg p-2"
@@ -77,17 +103,22 @@ export default function AdminCounsellorsPage() {
             type="number"
             placeholder="Fee (INR)"
             value={form.feePerSessionINR}
-            onChange={(e) => setForm((f) => ({ ...f, feePerSessionINR: Number(e.target.value) }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, feePerSessionINR: Number(e.target.value) }))
+            }
           />
         </div>
         <div className="flex gap-2">
           <button className="px-4 py-2 rounded-lg bg-black text-white" onClick={save}>
-            {editing ? "Update" : "Create"}
+            {editingId ? 'Update' : 'Create'}
           </button>
-          {editing && (
+          {editingId && (
             <button
               className="px-4 py-2 rounded-lg border"
-              onClick={() => { setEditing(null); setForm({ name: "", specialization: "", feePerSessionINR: 0 }); }}
+              onClick={() => {
+                setEditingId(null);
+                setForm({ name: '', specialization: '', feePerSessionINR: 0 });
+              }}
             >
               Cancel
             </button>
@@ -106,20 +137,32 @@ export default function AdminCounsellorsPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => (
-              <tr key={c._id} className="border-t">
-                <td className="p-3">{c.name}</td>
-                <td className="p-3">{c.specialization}</td>
-                <td className="p-3">₹{c.feePerSessionINR}</td>
-                <td className="p-3 text-right space-x-2">
-                  <button className="px-3 py-1 rounded border" onClick={() => startEdit(c)}>Edit</button>
-                  <button className="px-3 py-1 rounded bg-red-600 text-white" onClick={() => remove(c._id)}>Delete</button>
-                </td>
-              </tr>
-            ))}
+            {rows.map((c, i) => {
+              const key = pickId(c, i);
+              return (
+                <tr key={key} className="border-t">
+                  <td className="p-3">{c?.name}</td>
+                  <td className="p-3">{c?.specialization}</td>
+                  <td className="p-3">₹{c?.feePerSessionINR ?? 0}</td>
+                  <td className="p-3 text-right space-x-2">
+                    <button className="px-3 py-1 rounded border" onClick={() => startEdit(c)}>
+                      Edit
+                    </button>
+                    <button
+                      className="px-3 py-1 rounded bg-red-600 text-white"
+                      onClick={() => remove(c)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
             {!rows.length && (
               <tr>
-                <td className="p-3 text-center text-gray-500" colSpan={4}>No counsellors yet.</td>
+                <td className="p-3 text-center text-gray-500" colSpan={4}>
+                  No counsellors yet.
+                </td>
               </tr>
             )}
           </tbody>

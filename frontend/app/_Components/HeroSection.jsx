@@ -1,23 +1,24 @@
+// app/components/HeroSection.jsx
 'use client'
 
-import Link from 'next/link'
-import Image from 'next/image'
+import { useState } from 'react'
 import Script from 'next/script'
-import { Button } from '@/components/ui/button'
 import { Fraunces } from 'next/font/google'
+import { Button } from '@/components/ui/button'
+import ConsultationModal from '@/components/ConsultationModal'
+import QuickAddictionTestModal from '@/components/QuickAddictionTestModal'
 
-
-const fraunces = Fraunces({ subsets: ['latin'], weight: ['600','700'], display: 'swap' })
+const fraunces = Fraunces({ subsets: ['latin'], weight: ['600', '700'], display: 'swap' })
 
 export default function HeroSection() {
+  // modal state
+  const [consultOpen, setConsultOpen] = useState(false)
+  const [selfTestOpen, setSelfTestOpen] = useState(false)
+
+  // simple GA4/GTM tracker
   const track = (label) => {
     try {
-      // GA4 (gtag)
-      window.gtag?.('event', 'cta_click', {
-        event_category: 'CTA',
-        event_label: label,
-      })
-      // GTM
+      window.gtag?.('event', 'cta_click', { event_category: 'CTA', event_label: label })
       window.dataLayer?.push({ event: 'cta_click', label })
     } catch {}
   }
@@ -34,26 +35,27 @@ export default function HeroSection() {
       "
     >
       {/* Subtle premium gradient glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-luxe-glow"
-      />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-luxe-glow" />
 
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8
-+                 rounded-[1.25rem] lg:rounded-[1.5rem] ring-1 ring-[--border]/70
-+                 bg-[--card]/60 backdrop-blur supports-[backdrop-filter]:bg-[--card]/50
-+                 shadow-[0_30px_80px_rgba(0,0,0,0.06)]">
+      <div
+        className="
+          mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8
+          rounded-[1.25rem] lg:rounded-[1.5rem] ring-1 ring-[--border]/70
+          bg-[--card]/60 backdrop-blur supports-[backdrop-filter]:bg-[--card]/50
+          shadow-[0_30px_80px_rgba(0,0,0,0.06)]
+        "
+      >
         {/* Grid: mobile-first stack, two-column on lg */}
         <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-12">
           {/* Left: copy */}
           <div className="lg:col-span-6">
-            {/* H1 must be within first ~100px of viewport; minimal margin above */}
+            {/* H1 must be near top for SEO */}
             <h1
-  className={`${fraunces.className} text-[1.9rem] sm:text-[2.2rem] md:text-[2.45rem] leading-[1.12] tracking-tight text-[--foreground] text-center`}
-  aria-label="Online Addiction Counseling – Confidential, Professional and Accessible"
->
-  Online Addiction Counseling – Confidential, Professional & Accessible
-</h1>
+              className={`${fraunces.className} text-[1.9rem] sm:text-[2.2rem] md:text-[2.45rem] leading-[1.12] tracking-tight text-[--foreground] text-center`}
+              aria-label="Online Addiction Counseling – Confidential, Professional and Accessible"
+            >
+              Online Addiction Counseling – Confidential, Professional & Accessible
+            </h1>
 
             {/* luxe underline after H1 */}
             <div className="mt-3 h-[2px] w-16 rounded bg-[--border]" />
@@ -67,30 +69,26 @@ export default function HeroSection() {
               Over 10 years helping individuals overcome alcohol, drug, and behavioural addictions with
               evidence-based therapy and compassionate care.
             </h2>
-            {/* Mobile image (shows only < lg) */}
-        <div className="mt-5 lg:hidden">
-          <div className="relative overflow-hidden rounded-2xl ring-1 ring-[--border] bg-[--card] shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-            <img
-              src="/illustrations/online-addiction-counseling-session.webp"
-              alt="Therapist providing confidential online addiction counseling via video call"
-              width={1400}
-              height={1100}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-            className="h-auto w-full object-cover"
-            />
-    <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/40" />
-  </div>
-    </div>
 
+            {/* Mobile image */}
+            <div className="mt-5 lg:hidden">
+              <div className="relative overflow-hidden rounded-2xl ring-1 ring-[--border] bg-[--card] shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
+                <img
+                  src="/illustrations/online-addiction-counseling-session.webp"
+                  alt="Therapist providing confidential online addiction counseling via video call"
+                  width={1400}
+                  height={1100}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  className="h-auto w-full object-cover"
+                />
+                <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/40" />
+              </div>
+            </div>
 
-            {/* AI Overview definition (30–50 words) */}
-            <p
-              className="
-                mt-4 text-sm sm:text-base text-[--foreground] max-w-2xl
-              "
-            >
+            {/* AI Overview definition */}
+            <p className="mt-4 text-sm sm:text-base text-[--foreground] max-w-2xl">
               Online addiction counseling is a confidential, therapist-led recovery service that helps people
               address alcohol, drug, and behavioural addictions from home using evidence-based methods,
               structured goals, and compassionate support designed around your pace and privacy.
@@ -98,27 +96,27 @@ export default function HeroSection() {
 
             {/* CTAs */}
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <Button asChild
+              <Button
+                type="button"
+                onClick={() => {
+                  track('free_consult')
+                  setConsultOpen(true)
+                }}
                 className="
                   w-full sm:w-auto rounded-full
-                bg-gray-700 hover:bg-gray-800
+                  bg-gray-700 hover:bg-gray-800
                   px-6 py-2.5 text-sm sm:text-base font-semibold
                   shadow-[0_8px_24px_rgba(17,24,39,0.2)]
-      focus-visible:ring-2 focus-visible:ring-gray-700
-      !text-white [&_*]:!text-white visited:!text-white
+                  focus-visible:ring-2 focus-visible:ring-gray-700
+                  !text-white [&_*]:!text-white visited:!text-white
                 "
-                onClick={() => track('Free Consultation')}
+                aria-label="Book a free 15-minute consultation"
               >
-                <Link
-                  href="/book-consultation"
-                  aria-label="Book a Free 15 Minute Consultation for Addiction Counseling"
-                  className="!text-white visited:!text-white"
-                >
-                  Book a Free 15-Minute Consultation
-                </Link>
+                <span className="text-sm font-medium">Book Free 15-min Consultation</span>
               </Button>
 
-              <Button asChild
+              <Button
+                type="button"
                 variant="outline"
                 className="
                   w-full sm:w-auto rounded-full
@@ -126,16 +124,14 @@ export default function HeroSection() {
                   px-6 py-2.5 text-sm sm:text-base font-semibold
                   hover:bg-[--accent]
                   focus-visible:ring-2 focus-visible:ring-[--primary]
-                  
                 "
-                onClick={() => track('Self-Test')}
+                aria-label="Take the free addiction self test"
+                onClick={() => {
+                  track('cta_self_test')
+                  setSelfTestOpen(true)
+                }}
               >
-                <Link
-                  href="/addiction-self-test"
-                  aria-label="Take Our Free Addiction Self Test"
-                >
-                  Take Our Free Addiction Self-Test
-                </Link>
+                Take Our Free Addiction Self-Test
               </Button>
             </div>
 
@@ -145,7 +141,7 @@ export default function HeroSection() {
             </p>
           </div>
 
-          {/* Right: visual (static image for trust) */}
+          {/* Right: visual (desktop) */}
           <div className="lg:col-span-6 hidden lg:block">
             <div
               className="
@@ -156,17 +152,15 @@ export default function HeroSection() {
               "
             >
               <img
-              src="/illustrations/online-addiction-counseling-session.webp"
-              alt="Therapist providing confidential online addiction counseling via video call"
-              width={1400}
-              height={1100}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              className="h-auto w-full object-cover"
+                src="/illustrations/online-addiction-counseling-session.webp"
+                alt="Therapist providing confidential online addiction counseling via video call"
+                width={1400}
+                height={1100}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                className="h-auto w-full object-cover"
               />
-
-              {/* Subtle frame accent */}
               <div className="pointer-events-none absolute inset-0 rounded-2xl sm:rounded-3xl ring-1 ring-inset ring-white/40" />
             </div>
           </div>
@@ -202,6 +196,10 @@ export default function HeroSection() {
           ],
         })}
       </Script>
+
+      {/* MODALS */}
+      <ConsultationModal open={consultOpen} onClose={() => setConsultOpen(false)} />
+      <QuickAddictionTestModal open={selfTestOpen} onClose={() => setSelfTestOpen(false)} />
     </section>
   )
 }

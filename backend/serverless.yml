@@ -8,6 +8,7 @@ provider:
   profile: zensoul-dev
 
   environment:
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}   # <-- ADD THIS
     USERS_TABLE: ZenUsers
     JWT_SECRET: ${env:JWT_SECRET}
     COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
@@ -19,6 +20,8 @@ provider:
     ADMIN_SEED_TOKEN: ${env:ADMIN_SEED_TOKEN, 'unset'}
     ADMIN_SEED_TOKEN_PATH: /zen/adminSeedToken
     CONSULTATIONS_TABLE: ZenConsultations
+    ALLOWED_ORIGINS: "http://localhost:3000,https://www.zensoulwellness.com,https://zensoulwellness.com"
+    
 
   iamRoleStatements:
     - Effect: Allow
@@ -27,19 +30,23 @@ provider:
         - dynamodb:GetItem
         - dynamodb:Query
         - dynamodb:UpdateItem
+        - dynamodb:Scan           # <-- add this
         - cognito-idp:SignUp
         - cognito-idp:ConfirmSignUp
         - cognito-idp:InitiateAuth
+        - cognito-idp:ListUsers                                  # <-- ADD
         - ssm:GetParameter
       Resource:
         - arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter/zen/adminSeedToken
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}/index/EmailIndex
+        - arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:provider.environment.COGNITO_USER_POOL_ID}
 
     - Effect: Allow
       Action:
         - dynamodb:PutItem
         - dynamodb:Query
+        - dynamodb:Scan           # <-- add this
       Resource:
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.ASSESSMENTS_TABLE}
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.ASSESSMENTS_TABLE}/index/UserIndex
@@ -48,6 +55,9 @@ provider:
       Action:
         - dynamodb:Scan
         - dynamodb:GetItem
+        - dynamodb:PutItem         # ADD
+        - dynamodb:UpdateItem      # ADD
+        - dynamodb:DeleteItem      # ADD
       Resource:
         - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.COUNSELLORS_TABLE}
 
@@ -55,6 +65,7 @@ provider:
       Action:
         - dynamodb:PutItem
         - dynamodb:Query
+        - dynamodb:Scan           # <-- add this
       Resource:
         - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments
         - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments/index/CounsellorDateSlotIndex
@@ -68,6 +79,17 @@ provider:
       Resource:
         - arn:aws:dynamodb:${self:provider.region}:*:table/ZenConsultations
         - arn:aws:dynamodb:${self:provider.region}:*:table/ZenConsultations/index/DateIndex
+
+    - Effect: Allow
+      Action: [ dynamodb:Scan ]
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}
+
+    # For appointments list scanning ZenAppointments (admin/appointments)
+    - Effect: Allow
+      Action: [ dynamodb:Scan ]
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/ZenAppointments    
 
 functions:
   # Auth (REST) — public
@@ -181,16 +203,98 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             arn: ${self:provider.environment.COGNITO_USER_POOL_ARN}  # HIGHLIGHT: use ARN var
+        
+  adminMe:
+    handler: functions/admin/me.handler
+    events:
+      - http:
+          path: admin/me
+          method: get
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
 
-          # NOTE: Remove "claims:" here. API Gateway will still pass claims to
-
-  me:
+  authMe:
     handler: functions/auth/me.handler
     events:
       - http:
-          path: /auth/me
+          path: auth/me
           method: get
-          cors: true  # returns CORS even on 401            
+          cors:
+            origins: [http://localhost:3000, https://www.zensoulwellness.com, https://zensoulwellness.com]
+            headers: [Content-Type, Authorization]
+            allowCredentials: false          
+
+  adminStats:
+    handler: functions/admin/stats.handler
+    events:
+      - http:
+          path: admin/stats
+          method: get
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers: [Content-Type, Authorization]
+            allowCredentials: false
+          # authorizer: (same as above)
+
+  adminUsers:
+    handler: functions/admin/users.handler
+    events:
+      - http:
+          path: admin/users
+          method: get
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers: [Content-Type, Authorization]
+            allowCredentials: false
+
+  adminAppointments:
+    handler: functions/admin/appointments.handler
+    events:
+      - http:
+          path: admin/appointments
+          method: get
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers: [Content-Type, Authorization]
+            allowCredentials: false                  
+
+  adminCounsellors:
+    handler: functions/admin/counsellors.handler
+    events:
+      - http: { path: admin/counsellors, method: get,  cors: { origins: [http://localhost:3000, https://www.zensoulwellness.com, https://zensoulwellness.com], headers: [Content-Type, Authorization], allowCredentials: false } }
+      - http: { path: admin/counsellors, method: post, cors: { origins: [http://localhost:3000, https://www.zensoulwellness.com, https://zensoulwellness.com], headers: [Content-Type, Authorization], allowCredentials: false } }
+      - http: { path: admin/counsellors, method: put,  cors: { origins: [http://localhost:3000, https://www.zensoulwellness.com, https://zensoulwellness.com], headers: [Content-Type, Authorization], allowCredentials: false } }
+      - http: { path: admin/counsellors, method: delete, cors: { origins: [http://localhost:3000, https://www.zensoulwellness.com, https://zensoulwellness.com], headers: [Content-Type, Authorization], allowCredentials: false } }                               
+
+  recommendTherapists:
+    handler: functions/match/recommend.handler
+    events:
+      - http:
+          path: match/recommend
+          method: post
+          cors:
+            origins:
+              - http://localhost:3000
+              - https://www.zensoulwellness.com
+              - https://zensoulwellness.com
+            headers: [Content-Type, Authorization]
+            allowCredentials: false    
 
 plugins:
   - serverless-offline
@@ -270,7 +374,7 @@ resources:
               - AttributeName: time
                 KeyType: RANGE
             Projection:
-              ProjectionType: ALL
+              ProjectionType: ALL       
 
     # API Gateway default responses with CORS so 401/403/500 include CORS headers
     GatewayResponseDefault4XX:

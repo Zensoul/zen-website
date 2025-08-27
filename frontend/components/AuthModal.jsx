@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { login } from '@/lib/api'
 
-// inline JWT decode (for login stage)
+// inline JWT decode (payload only; no signature verification)
 function decodeJWT(token) {
   try {
     const base64Url = token.split('.')[1]
@@ -31,7 +31,7 @@ function decodeJWT(token) {
 export default function AuthModal({
   open,
   onClose,
-  skipRedirect = false  // new prop to control redirect
+  skipRedirect = false
 }) {
   const router = useRouter()
   const { setUser } = useUser()
@@ -59,14 +59,11 @@ export default function AuthModal({
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/auth/signup`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        }
-      )
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Signup failed')
       setStage('confirm')
@@ -81,14 +78,11 @@ export default function AuthModal({
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/auth/confirm`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: formData.email, confirmationCode: code })
-        }
-      )
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/auth/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, confirmationCode: code })
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Confirmation failed')
       setStage('login')
@@ -105,36 +99,60 @@ export default function AuthModal({
     setLoading(true)
     setError('')
     try {
-      // ✅ use API helper
+      // Call backend login
       const data = await login({ email: formData.email, password: formData.password })
+      // Expect either { token } or { idToken }, we’ll normalize
+      const idToken = data?.idToken || data?.token
+      if (!idToken) throw new Error('Token not received')
 
-      if (!data?.token) throw new Error('Token not received')
-
-      // ✅ store token (client-side only)
+      // Save for the rest of the app (compat-friendly)
       if (typeof window !== 'undefined') {
-        localStorage.setItem('token', data.token)
+        localStorage.setItem('idToken', idToken) // many parts of app read this
+        localStorage.setItem('token', idToken)   // keep old key too just in case
       }
 
-      // ✅ prefer backend user if provided, else decode the token
-      if (data.user) {
+      // Build user for context
+      let isAdmin = false
+      let userObj = null
+
+      if (data?.user) {
         const u = data.user
-        setUser({
+        // data.user.isAdmin is emitted by your backend
+        isAdmin = !!u.isAdmin
+        userObj = {
           userId: u.userId || u.sub || u.id,
           email: u.email,
-          name: u.name
-        })
+          name: u.name,
+          isAdmin,
+        }
       } else {
-        const decoded = decodeJWT(data.token)
+        // fallback: decode JWT and derive admin from cognito:groups
+        const decoded = decodeJWT(idToken)
         if (!decoded) throw new Error('Invalid token')
-        setUser({
+        const groupsRaw = decoded['cognito:groups'] || []
+        const groups = Array.isArray(groupsRaw)
+          ? groupsRaw
+          : String(groupsRaw || '').split(',').map(s => s.trim()).filter(Boolean)
+        isAdmin = groups.includes('Admins')
+        userObj = {
           userId: decoded.sub,
           email: decoded.email,
-          name: decoded.name
-        })
+          name: decoded.name,
+          isAdmin,
+        }
       }
 
-      onClose()
-      if (!skipRedirect) router.push('/dashboard')
+      setUser(userObj)
+
+      onClose?.()
+      if (!skipRedirect) {
+        // Redirect based on role
+        if (isAdmin) {
+          router.push('/admin')
+        } else {
+          router.push('/dashboard')
+        }
+      }
     } catch (err) {
       setError(err.message)
     } finally {
