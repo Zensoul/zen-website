@@ -1,26 +1,27 @@
+// frontend/app/login/LoginClient.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import { useUser } from '@/context/UserContext';
 
-export default function LoginClient() {
+export default function LoginClient({ nextFromQuery = '/' }) {
   const router = useRouter();
-  const params = useSearchParams();
   const { user } = useUser();
+
   const [open, setOpen] = useState(true);
 
-  // where to go after login
-  const next = params?.get('next') || '/';
+  // Normalize "next" (from server) for client logic
+  const next = useMemo(() => (nextFromQuery || '/'), [nextFromQuery]);
 
+  // If already logged in, route immediately
   useEffect(() => {
-    // If already logged in, route immediately
     if (!user) return;
     if (user.isAdmin) {
       router.replace(next.startsWith('/admin') ? next : '/admin');
     } else {
-      router.replace(next && next !== '/admin' ? next : '/dashboard');
+      router.replace(next && !next.startsWith('/admin') ? next : '/dashboard');
     }
   }, [user, next, router]);
 
@@ -30,7 +31,7 @@ export default function LoginClient() {
     if (user?.isAdmin) {
       router.replace(next.startsWith('/admin') ? next : '/admin');
     } else if (user) {
-      router.replace(next && next !== '/admin' ? next : '/dashboard');
+      router.replace(next && !next.startsWith('/admin') ? next : '/dashboard');
     } else {
       router.replace('/');
     }
@@ -38,7 +39,7 @@ export default function LoginClient() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      {/* Keep control of redirect here, so tell modal to skip its own redirect */}
+      {/* Keep control of redirect here; tell modal not to auto-redirect */}
       <AuthModal open={open} onClose={handleClose} skipRedirect />
     </div>
   );
