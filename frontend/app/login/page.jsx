@@ -1,22 +1,32 @@
 // frontend/app/login/page.jsx
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import { useUser } from '@/context/UserContext';
 
-// Prevent prerendering; always render this page dynamically on the server.
+// Make sure this page never gets prerendered
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
-function LoginPageInner() {
+export default function LoginPage() {
   const router = useRouter();
-  const params = useSearchParams();
   const { user } = useUser();
   const [open, setOpen] = useState(true);
+  const [nextParam, setNextParam] = useState('/');
+
+  // Read ?next=… from the browser (avoids useSearchParams completely)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    const n = sp.get('next') || '/';
+    setNextParam(n);
+  }, []);
 
   // Where to go after login
-  const next = params?.get('next') || '/';
+  const next = useMemo(() => nextParam || '/', [nextParam]);
 
   useEffect(() => {
     if (!user) return;
@@ -27,7 +37,6 @@ function LoginPageInner() {
     }
   }, [user, next, router]);
 
-  // When modal closes (user may or may not be logged in)
   const handleClose = () => {
     setOpen(false);
     if (user?.isAdmin) {
@@ -41,16 +50,8 @@ function LoginPageInner() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      {/* Keep redirects controlled here; tell modal not to auto-redirect */}
+      {/* Keep control of redirect here; tell modal not to auto-redirect */}
       <AuthModal open={open} onClose={handleClose} skipRedirect />
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-6 text-gray-500">Loading…</div>}>
-      <LoginPageInner />
-    </Suspense>
   );
 }
