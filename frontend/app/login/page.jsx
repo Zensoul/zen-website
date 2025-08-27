@@ -6,18 +6,17 @@ import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import { useUser } from '@/context/UserContext';
 
-// Make sure this page never gets prerendered
+// Prevent static generation/prerender
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
 
 export default function LoginPage() {
   const router = useRouter();
   const { user } = useUser();
+
   const [open, setOpen] = useState(true);
   const [nextParam, setNextParam] = useState('/');
 
-  // Read ?next=… from the browser (avoids useSearchParams completely)
+  // Read ?next=... from the browser (avoids useSearchParams/Suspense)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const sp = new URLSearchParams(window.location.search);
@@ -25,9 +24,9 @@ export default function LoginPage() {
     setNextParam(n);
   }, []);
 
-  // Where to go after login
   const next = useMemo(() => nextParam || '/', [nextParam]);
 
+  // If already logged in, route immediately
   useEffect(() => {
     if (!user) return;
     if (user.isAdmin) {
@@ -37,6 +36,7 @@ export default function LoginPage() {
     }
   }, [user, next, router]);
 
+  // When modal closes (user may or may not be logged in)
   const handleClose = () => {
     setOpen(false);
     if (user?.isAdmin) {
